@@ -130,15 +130,25 @@ d2e532a065b17ab07104c7f445c823aadafab10b263b613b1fec7e5fb50b046a
 
 ### OpenFOAM
 
-`scripts/build-openfoam.sh` preserves the hardcoded OpenFOAM and ThirdParty
-commits captured from their upstream default branches on 2026-10-19. Change these
-pins in the script to change sources.
+`scripts/build-openfoam.sh` pins OpenFOAM to an immutable commit of
+`AnchorQEA/OpenFOAM-13-Windows`, including the Windows runtime-path fix and its
+regression test. ThirdParty remains pinned to the original
+`fralarco/ThirdParty-13-Windows` commit. Fetches use the selected repository URL
+even when a local checkout's origin still points upstream. Change these pins in
+the script to change sources; source URLs and commits are recorded in SDK metadata.
 
 Sibling checkouts live under `C:\OF13`. The script builds wmake tools, Windows
 support objects, the core/Pstream circular-link bootstrap, and these libraries:
 **OpenFOAM, dummy Pstream, fileFormats, surfMesh, triSurface, meshTools,
 finiteVolume**. ThirdParty is retained as source; its libraries and OpenFOAM
 applications such as checkMesh are not built.
+
+Before the OpenFOAM build can succeed, the fork's
+`scripts/windows/run_fileNameSpaces.sh` builds and runs `Test-fileNameSpaces`
+using the existing `wmake` test layout. It checks native argument parsing, exact
+paths and fixture-file reading under both plain and `Program Files/Anchor QEA`
+paths, with filename debug level `2` and 30-second process timeouts. Only the
+focused test is added to the library build; no tutorial solver is required.
 
 The SDK includes both source trees, generated headers, materialized lnInclude
 contents, wmake/support tools, DLLs/import libraries, configuration, and licenses.
@@ -161,8 +171,11 @@ solver, and uploads release assets before publication. Only the final job has
 The OpenFOAM SDK is also cached using its pinned build recipe and the complete
 MSYS2 package inventory. A cache hit reuses the checksummed SDK and skips the
 40-minute OpenFOAM build; the first run for a new source recipe or toolchain is a
-cold build. `BUILD_INFO.txt` retains the run and commit that produced the cached
-SDK.
+cold build. Cache hits verify checksums and toolchain compatibility, extract the
+SDK, and rerun the same focused path test before the OpenFOAM job completes.
+Failure prevents SDK caching/upload and downstream solver builds. The cache key
+includes the build script and workflow, so changing the fork pin invalidates old
+SDKs. `BUILD_INFO.txt` retains the run and commit that produced the cached SDK.
 
 The prerelease uses the pushed version tag, such as `v0.1.0`, targeting the
 workflow's exact repository commit. It is never marked Latest. Actions artifact
@@ -176,8 +189,13 @@ names retain the run ID and attempt for build traceability. Assets are:
 - `BUILD_INFO.txt`, `TOOLCHAIN_ABI.txt`, `SDK-README.md`, and `SHA256SUMS`.
 
 Packaging checks imports of every included executable/DLL against packaged DLLs
-and known Windows system libraries. The workflow does not run smoke tests,
-upstream test suites, or numerical validation.
+and known Windows system libraries. Before archiving the assembled runtime,
+`scripts/test-muflowrt-startup.ps1` copies it into temporary plain and
+`Program Files/Anchor QEA` locations and runs its existing PowerShell launcher
+with `-help`. Both runs must exit successfully and print usage within 30 seconds;
+failure blocks release-asset upload and publication. Staging directories are
+retained for diagnosis, and output is included in the existing build/package
+logs. Full upstream test suites and numerical validation are not run.
 
 ### Run the runtime ZIP
 
@@ -242,7 +260,7 @@ entry points.
 
 ## References
 
-- [OpenFOAM Windows recipe](https://github.com/fralarco/OpenFOAM-13-Windows/blob/master/BUILD_WINDOWS.md)
+- [OpenFOAM Windows recipe](https://github.com/AnchorQEA/OpenFOAM-13-Windows/blob/master/BUILD_WINDOWS.md)
 - [PhreeqcRM release](https://github.com/phreeqc-dev/phreeqcrm/releases/tag/v3.8.6)
 - [MSYS2 setup action](https://github.com/msys2/setup-msys2)
 - [GitHub workflow artifacts](https://docs.github.com/en/actions/tutorials/store-and-share-data)
