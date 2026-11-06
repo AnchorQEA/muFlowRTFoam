@@ -19,7 +19,7 @@ fetch_source() {
 
 openfoam_repository=https://github.com/AnchorQEA/OpenFOAM-13-Windows.git
 thirdparty_repository=https://github.com/fralarco/ThirdParty-13-Windows.git
-fetch_source OpenFOAM-13-Windows "$openfoam_repository" 72d7e848b582cb24ba4dad9c7b42e129b700ff6d
+fetch_source OpenFOAM-13-Windows "$openfoam_repository" 94858f9e4f1a27690ace000adce9e1585bb5fc78
 fetch_source ThirdParty-13-Windows "$thirdparty_repository" 8fee8283fa502f4835a94dc2291581fc2b053d4d
 {
     echo "$openfoam_repository $(git -C "$OF13_CLONE" rev-parse HEAD)"
