@@ -102,6 +102,7 @@ EOF
     echo "Commit: $GITHUB_SHA"
     echo "Run: $GITHUB_RUN_ID; attempt: $GITHUB_RUN_ATTEMPT"
     echo 'muFlowRT: wmake, UCRT64 x86_64, DP/Int32/Opt, dummy Pstream, -fopenmp'
+    echo 'TimeScheduleVersion: 2'
     cat "$temp/dependency-toolchain.txt"
     for dependency in phreeqcrm openfoam; do
         printf '\nDependency: %s\n' "$dependency"

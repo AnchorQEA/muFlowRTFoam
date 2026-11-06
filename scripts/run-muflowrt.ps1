@@ -34,6 +34,7 @@ try {
         $phreeqcBin = $bundleBin
         $runtimeBin = $bundleBin
         $userLibBin = $bundleBin
+        $buildInfoPath = Join-Path $PSScriptRoot 'BUILD_INFO.txt'
     }
     else {
         # Resolve overrides before changing to the case directory.
@@ -46,6 +47,7 @@ try {
         $phreeqcBin = Join-Path $PhreeqcRMRoot 'bin'
         $runtimeBin = Join-Path $Msys2Root 'ucrt64\bin'
         $userLibBin = Join-Path (Split-Path (Split-Path $ExecutablePath -Parent) -Parent) 'lib'
+        $buildInfoPath = [IO.Path]::ChangeExtension($ExecutablePath, 'BUILD_INFO.txt')
     }
 
     $requiredFiles = @(
@@ -71,6 +73,27 @@ try {
     if (($SolverArguments -notcontains '-help') -and
         -not (Test-Path -LiteralPath (Join-Path $CaseDirectory 'system\controlDict') -PathType Leaf)) {
         throw "No system/controlDict in $CaseDirectory. Use -CaseDirectory with a prepared muFlowRT case, or -SolverArguments '-help' to check startup."
+    }
+
+    if ($SolverArguments -notcontains '-help') {
+        $control = Get-Content -LiteralPath (Join-Path $CaseDirectory 'system\controlDict') -Raw
+        $control = [regex]::Replace($control, '(?s)/\*.*?\*/|//[^\n]*', '')
+        $versions = [regex]::Matches($control, '\btimeScheduleVersion\b([^;]*);')
+        if ($versions.Count -gt 0 -or $control -match '\btimeScheduleVersion\b') {
+            if ($versions.Count -ne 1 -or $versions[0].Groups[1].Value.Trim() -notin '1', '2') {
+                throw 'Unsupported or invalid muFlowRT timeScheduleVersion.'
+            }
+            if ($versions[0].Groups[1].Value.Trim() -eq '2') {
+                $supported = @()
+                if (Test-Path -LiteralPath $buildInfoPath -PathType Leaf) {
+                    $metadata = Get-Content -LiteralPath $buildInfoPath -Raw
+                    $supported = @([regex]::Matches($metadata, '(?m)^TimeScheduleVersion:\s*(\d+)\s*$'))
+                }
+                if ($supported.Count -ne 1 -or $supported[0].Groups[1].Value -ne '2') {
+                    throw "This case requires muFlowRT time-schedule version 2. Install the updated complete solver bundle, or rebuild with scripts/build-muflowrt.sh. Expected compatible build metadata: $buildInfoPath"
+                }
+            }
+        }
     }
 
     $dllDirectories = @($foamLibBin, $pstreamBin, $userLibBin, $phreeqcBin, $runtimeBin)
