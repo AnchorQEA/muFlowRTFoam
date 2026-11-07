@@ -45,7 +45,6 @@ std::vector<std::string> obsTransNames = {"C","T"};
 int iv,iv1,ic,ig,nv;
 if (flagW==1) // write the files    
 	{
-	Info<<"obs size obsFlow "<<obsFlow.size()<<" "<<obsFlow[0]<<" "<<obsFlow[1]<<" "<<obsFlow[2]<<" "<<obsFlow[3]<<endl;
 	for (int io=0;io<nobs;io++) //one file for each ob point
 		{
 		//fro flow and transp only some variables can be stored

@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
 	//remove all files in the folder observation
 	if (mesh.time().value()==0) {fname = cur_dir+"/observation"; if (fexists(fname)) {deleteFilesInDirectory(fname);} }
 	//Observations : obspts a file with the name of each point and its x,y,z, coordinates
-	fname = cur_dir+"/constant/options/obspts";int nobs;std::vector<int> icello;outTable observ;
+	fname = cur_dir+"/constant/options/obspts";int nobs = 0;std::vector<int> icello;outTable observ;
 	if (fexists(fname))
 		{
 		observ = readTable(fname);nobs = observ.nrow;int ncol = observ.ncol;icello.resize(nobs);std::cout<<"nobs "<<nobs<<" "<<ncol<<"\n";
