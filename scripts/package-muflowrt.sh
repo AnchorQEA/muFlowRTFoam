@@ -95,6 +95,7 @@ OpenFOAM plugins, MPI, and OpenFOAM command-line utilities require a separate SD
 and toolchain; they are not supplied by this runtime bundle.
 
 BUILD_INFO.txt records sources and toolchains; SHA256SUMS covers the bundle files.
+Packaging checks native -help startup from paths with and without spaces.
 Numerical behavior has not been validated by the build workflow.
 EOF
 {
@@ -102,6 +103,7 @@ EOF
     echo "Commit: $GITHUB_SHA"
     echo "Run: $GITHUB_RUN_ID; attempt: $GITHUB_RUN_ATTEMPT"
     echo 'muFlowRT: wmake, UCRT64 x86_64, DP/Int32/Opt, dummy Pstream, -fopenmp'
+    echo 'TimeScheduleVersion: 2'
     cat "$temp/dependency-toolchain.txt"
     for dependency in phreeqcrm openfoam; do
         printf '\nDependency: %s\n' "$dependency"
@@ -114,6 +116,9 @@ cp "$temp/dependency-abi.txt" "$bundle/TOOLCHAIN_ABI.txt"
     find . -type f ! -name SHA256SUMS -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > SHA256SUMS
     sha256sum --check --strict SHA256SUMS
 )
+powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass \
+    -File "$(cygpath -w "$repo_dir/scripts/test-muflowrt-startup.ps1")" \
+    -BundleDirectory "$(cygpath -w "$bundle")"
 (
     cd "$stage"
     zip -qr "$stage/$name.zip" "$name"

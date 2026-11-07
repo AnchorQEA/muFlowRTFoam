@@ -60,4 +60,5 @@ cd "$repo_dir/solvers"
 wmake
 executable="$FOAM_USER_APPBIN/muFlowRT.exe"
 [[ -f "$executable" ]] || { echo "wmake did not produce $executable" >&2; exit 1; }
+printf 'TimeScheduleVersion: 2\n' > "${executable%.exe}.BUILD_INFO.txt"
 printf '\nBuilt muFlowRT: %s\n' "$(cygpath -m "$executable")"

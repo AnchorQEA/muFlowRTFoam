@@ -6,22 +6,24 @@ export OF13_CLONE="$OF13_ROOT/OpenFOAM-13-Windows"
 export OF13_THIRDPARTY="$OF13_ROOT/ThirdParty-13-Windows"
 
 fetch_source() {
-    local name=$1 ref=$2
+    local name=$1 repository=$2 ref=$3
     if [[ ! -e "$OF13_ROOT/$name/.git" ]]; then
         git init "$OF13_ROOT/$name"
-        git -C "$OF13_ROOT/$name" remote add origin "https://github.com/fralarco/$name.git"
+        git -C "$OF13_ROOT/$name" remote add origin "$repository"
     fi
-    git -C "$OF13_ROOT/$name" fetch --depth=1 origin "$ref"
+    # Fetch the selected repository even when an existing origin is upstream.
+    git -C "$OF13_ROOT/$name" fetch --depth=1 "$repository" "$ref"
     git -C "$OF13_ROOT/$name" checkout --detach FETCH_HEAD
     git -C "$OF13_ROOT/$name" rev-parse HEAD
 }
 
-# Current upstream master commits, captured 2026-10-19.
-fetch_source OpenFOAM-13-Windows f57ca4c8aea92c170cb2e397f88f0dd6cfd4b81f
-fetch_source ThirdParty-13-Windows 8fee8283fa502f4835a94dc2291581fc2b053d4d
+openfoam_repository=https://github.com/AnchorQEA/OpenFOAM-13-Windows.git
+thirdparty_repository=https://github.com/fralarco/ThirdParty-13-Windows.git
+fetch_source OpenFOAM-13-Windows "$openfoam_repository" 82506c5c8b567aa44d87a5c29e857b4b2d01c7fe
+fetch_source ThirdParty-13-Windows "$thirdparty_repository" 8fee8283fa502f4835a94dc2291581fc2b053d4d
 {
-    echo "https://github.com/fralarco/OpenFOAM-13-Windows.git $(git -C "$OF13_CLONE" rev-parse HEAD)"
-    echo "https://github.com/fralarco/ThirdParty-13-Windows.git $(git -C "$OF13_THIRDPARTY" rev-parse HEAD)"
+    echo "$openfoam_repository $(git -C "$OF13_CLONE" rev-parse HEAD)"
+    echo "$thirdparty_repository $(git -C "$OF13_THIRDPARTY" rev-parse HEAD)"
 } > "$OF13_ROOT/SOURCES.txt"
 # Build the serial libraries needed by muFlowRT. Keep the sibling ThirdParty
 # checkout for the SDK layout, but this subset does not need Scotch or MPI.
@@ -56,5 +58,7 @@ wmake libso src/Pstream/dummy
 for library in fileFormats surfMesh triSurface meshTools finiteVolume; do
     wmake libso "src/$library"
 done
+
+bash "$WM_PROJECT_DIR/scripts/windows/run_fileNameSpaces.sh"
 
 echo "Built the seven OpenFOAM libraries required by muFlowRT in $FOAM_LIBBIN."

@@ -111,7 +111,7 @@ jobs:
           path: ${{ runner.temp }}/openfoam-sdk-cache
           key: >-
             openfoam-sdk-v1-${{ runner.os }}-${{ steps.openfoam-cache-key.outputs.toolchain-hash }}-${{ hashFiles('.github/workflows/build-muflowrt.yml', 'scripts/build-openfoam.sh', 'scripts/package-dependency.sh', '.github/actions/setup-msys2/action.yml', '.github/DEPENDENCIES.md') }}
-      - name: Build OpenFOAM from the pinned source commits
+      - name: Build and validate OpenFOAM from the pinned AnchorQEA fork
         if: steps.openfoam-sdk-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
@@ -122,7 +122,7 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/package-dependency.sh openfoam 2>&1 | tee "$(cygpath -u "$RUNNER_TEMP")/openfoam-package.log"
-      - name: Verify cached OpenFOAM SDK
+      - name: Verify, restore, and validate cached OpenFOAM SDK
         id: cached-package
         if: steps.openfoam-sdk-cache.outputs.cache-hit == 'true'
         run: |
@@ -135,6 +135,18 @@ jobs:
             cat "$cached/TOOLCHAIN_ABI.txt" "$temp/dependency-abi.txt"
             exit 1
           fi
+          shopt -s nullglob
+          archives=("$cached/openfoam-13-ucrt64-x86_64.tar.zst")
+          if [[ ! -f ${archives[0]} ]]; then
+            archives=("$cached/openfoam-13-ucrt64-x86_64.tar.zst.part-"*)
+          fi
+          if (( ${#archives[@]} == 0 )); then
+            echo '::error::Missing cached OpenFOAM SDK archive.' >&2
+            exit 1
+          fi
+          cat "${archives[@]}" | zstd -dc | tar -xf - -C /c
+          export OF13_ROOT=/c/OF13 OF13_CLONE=/c/OF13/OpenFOAM-13-Windows
+          bash "$OF13_CLONE/scripts/windows/run_fileNameSpaces.sh" 2>&1 | tee "$temp/openfoam-paths.log"
           echo "artifact-name=deps-openfoam-13-ucrt64-x86_64-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
       - name: Prepare OpenFOAM SDK cache
         if: success() && steps.openfoam-sdk-cache.outputs.cache-hit != 'true'
